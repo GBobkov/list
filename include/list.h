@@ -36,6 +36,4 @@ int Add_Elem(LIST* lst, int anchor_elem, int value);
 int Del_Elem(LIST* lst, int ind);
 
 
-
-
 #endif
