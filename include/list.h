@@ -1,6 +1,8 @@
 #ifndef LIST_H
 #define LIST_H
 
+#include <stdio.h>
+
 // struct ELEM_LST
 // {
 //     int value;
@@ -13,6 +15,7 @@ typedef int elem_t;
 struct LIST
 {
     int size_lst;
+    int amout_elems;
     int free_ind;
     elem_t* data;
     elem_t* next;
@@ -35,5 +38,9 @@ int Add_Elem(LIST* lst, int anchor_elem, int value);
 // Удалить элемент стоящий по индексу ind.
 int Del_Elem(LIST* lst, int ind);
 
+
+
+// 
+void Lst_Dump (FILE* dump_file, LIST* lst);
 
 #endif
