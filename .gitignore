@@ -7,3 +7,5 @@ makefile
 assembler.asm
 machine_code.bin
 main.cpp
+dump.dot
+dump.png

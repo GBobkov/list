@@ -4,12 +4,21 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-static void memset(elem_t* first, int size)
+#ifdef DEBUG
+#define ON_DEBUG(code) code
+#else 
+#define ON_DEBUG(code)
+#endif
+
+
+
+ON_DEBUG(// заполняет нулями size байт.
+static void fill_zeros(elem_t* first, int size)
 {
     for (int i = 0; i < size; i++)
         first[i] = 0;
     
-}
+})
 
 
 // Если массив data переполнен.
@@ -22,9 +31,11 @@ static int Increase_Realloc(LIST* lst)
     lst->next = (elem_t *) realloc((void *) lst->next, lst->size_lst * sizeof(lst->next[0]));
     lst->prev = (elem_t *) realloc((void *) lst->prev, lst->size_lst * sizeof(lst->prev[0]));
 
-    memset(lst->data + last_size, lst->size_lst - last_size);
-    memset(lst->next + last_size, lst->size_lst - last_size);
-    memset(lst->prev + last_size, lst->size_lst - last_size);
+    ON_DEBUG(
+    fill_zeros(lst->data + last_size, lst->size_lst - last_size);
+    fill_zeros(lst->next + last_size, lst->size_lst - last_size);
+    fill_zeros(lst->prev + last_size, lst->size_lst - last_size);)
+
     for (int i = last_size; i < lst->size_lst; i++)  // Заполняем массив next последовательностью свободных ячеек.
         lst->next[i] = (i + 1) % lst->size_lst;
     lst->free_ind = last_size;
@@ -41,7 +52,7 @@ int Init_List(LIST* lst, int size_lst)
     lst->amout_elems = 0;
     lst->size_lst = size_lst;
     lst->free_ind = 1;
-    lst->data = (elem_t *) calloc(size_lst, sizeof(elem_t));
+    lst->data = (elem_t *) calloc(size_lst, sizeof(elem_t)); // Массив data заполнен нулями изначально
     lst->next = (elem_t *) calloc(size_lst, sizeof(elem_t));
     lst->prev = (elem_t *) calloc(size_lst, sizeof(elem_t));
 
@@ -104,7 +115,7 @@ int Add_Elem(LIST* lst, int anch_ind, int value)
     lst->data[new_elem_ind] = value;           // кладём новый элемент в свободную ячейку массива data.
 
     // Обновление индексов
-    int next_anch_ind = lst->next[anch_ind];  // Индекс элемента который шёл после acnhor до вставки (назовём этот элемент next_anch_ind).
+    int next_anch_ind = lst->next[anch_ind];  // Индекс элемента который шёл после anchor до вставки (назовём этот элемент next_anch_ind).
     lst->prev[next_anch_ind] = new_elem_ind;  // устанавливаем связь    new_elem<-next_anch_ind
     lst->prev[new_elem_ind] = anch_ind;        // устанавливаем связь   anch_ind<-new_elem    
 
@@ -153,11 +164,11 @@ void Lst_Dump (FILE* dump_file, LIST* lst)
     #define BUSY_COLOR  "\"coral\""
     #define TITLE_COLOR "\"lightblue\""
 
-    fprintf (dump_file, "digraph G\n");
-    fprintf (dump_file, "{\n");
-    fprintf (dump_file, "splines=ortho;\n");
-    fprintf (dump_file, "nodesep=0.5;\n"); // расстояние между ячейками
-    fprintf (dump_file, "node[shape=\"record\", style=\"rounded, filled\"];\n\n");
+    fprintf (dump_file, "digraph G\n"
+                        "{\n"
+                        "splines=ortho;\n"
+                        "nodesep=0.5;\n"
+                        "node[shape=\"record\", style=\"rounded, filled\"];\n\n");
 
     fprintf (dump_file, "free[label = \"free_ind = %d\", style=\"rounded,filled\", fillcolor = " TITLE_COLOR "]\n", lst->free_ind);
     fprintf (dump_file, "0[label = \"{ <i>0|<d>data = %d|<n>next = %d|<p>prev = %d }\", fillcolor =" TITLE_COLOR "];\n", lst->data[0], lst->next[0], lst->prev[0]);
@@ -173,31 +184,28 @@ void Lst_Dump (FILE* dump_file, LIST* lst)
 
     // соединяем невидимыми линиями
     for (int i = 0; i < lst->size_lst; ++i)
-        fprintf (dump_file, "%d->%d [weight = 5000, style=invis]; \n", i, i + 1);
+        fprintf (dump_file, "%d->%d [weight = 5000, style=invis, shape=inv]; \n", i, i + 1);
     fprintf (dump_file, "\n");
 
     // соединяем стрелками next
     int cur_ind = 0;
-    while (lst->next[cur_ind])
+    do
     {
-        fprintf (dump_file, "%d->%d [weight = 0, color = blueviolet];\n", cur_ind, lst->next[cur_ind]);
+        fprintf (dump_file, "%d->%d [weight = 0, color = blueviolet, dir=\"both\"];\n", cur_ind, lst->next[cur_ind]);
         cur_ind = lst->next[cur_ind];
-    }
-    fprintf (dump_file, "%d->%d [weight = 0, color = blueviolet];\n", cur_ind, lst->next[cur_ind]);
+    } while(cur_ind);
     fprintf (dump_file, "\n");
 
 
-    // соединяем стрелками prev
-    cur_ind = 0;
-    while (lst->prev[cur_ind])
-    {
-        fprintf (dump_file, "%d->%d [weight = 0, color = deeppink];\n", cur_ind, lst->prev[cur_ind]);
-        cur_ind = lst->prev[cur_ind];
-    }
-
-
-    fprintf (dump_file, "%d->%d [weight = 0, color = deeppink];\n", cur_ind, lst->prev[cur_ind]);
-    fprintf (dump_file, "\n");
+    // // соединяем стрелками prev
+    // cur_ind = 0;
+    // do
+    // {
+    //     fprintf (dump_file, "%d->%d [weight = 0, color = deeppink];\n", cur_ind, lst->prev[cur_ind]);
+    //     cur_ind = lst->prev[cur_ind];
+    // } while (cur_ind);
+    
+    // fprintf (dump_file, "\n");
 
     // красим свободные ячейки в зеленый
     fprintf (dump_file, "free->%d;\n", lst->free_ind);
@@ -206,7 +214,6 @@ void Lst_Dump (FILE* dump_file, LIST* lst)
     printf_array(lst->next, lst->size_lst);
     while (free_block != 0)
     {
-        
         fprintf (dump_file, "%d[fillcolor = " FREE_COLOR "];\n", free_block);
         free_block = lst->next[free_block];
     }
